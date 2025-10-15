@@ -1,0 +1,242 @@
+import React, { useRef, useEffect, useState } from 'react'
+import { useScroll } from '@react-three/drei'
+import { useFrame } from '@react-three/fiber'
+
+/**
+ * ScramblingWords - Security-themed scrambling text effect
+ * Creates words that appear at random positions, scramble with random characters,
+ * then reveal the actual word before disappearing
+ */
+function ScramblingWords({ scrollStart, scrollEnd, wordCount = 8 }) {
+  const containerRef = useRef()
+  const scroll = useScroll()
+  const [words, setWords] = useState([])
+  const [isActive, setIsActive] = useState(false)
+  
+  // Security-themed words to scramble
+  const securityWords = [
+    'ENCRYPTED', 'SECURE', 'PROTECTED', 'SAFE', 'PRIVATE',
+    'LOCKED', 'SHIELDED', 'DEFENDED', 'GUARDED', 'SECURED',
+    'ENCODED', 'AUTHENTICATED', 'VERIFIED', 'TRUSTED', 'SECRET',
+    'FIREWALL', 'ANTIVIRUS', 'BLOCKCHAIN', 'CIPHER', 'KEY',
+    'ACCESS', 'CONTROL', 'VALIDATION', 'INTEGRITY', 'CONFIDENTIAL'
+  ]
+  
+  // Character sets for scrambling
+  const characterSets = {
+    uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    lowercase: 'abcdefghijklmnopqrstuvwxyz',
+    numbers: '0123456789',
+    symbols: '!@#$%^&*()_+-=[]{}|;:,.<>?'
+  }
+  
+  // Generate random characters for scrambling
+  const getRandomChar = () => {
+    const allChars = Object.values(characterSets).join('')
+    return allChars[Math.floor(Math.random() * allChars.length)]
+  }
+  
+  // Create a new scrambling word
+  const createWord = () => {
+    const word = securityWords[Math.floor(Math.random() * securityWords.length)]
+    const position = {
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight
+    }
+    
+    return {
+      id: Date.now() + Math.random(),
+      originalWord: word,
+      currentText: '',
+      position,
+      phase: 'scrambling', // 'scrambling', 'revealing', 'visible', 'fading'
+      scrambleProgress: 0,
+      revealProgress: 0,
+      visibleTime: 0,
+      fadeProgress: 0,
+      speed: 0.02 + Math.random() * 0.03, // Random speed variation
+      fontSize: 16 + Math.random() * 12, // Random size variation
+      rotation: 0 // Keep horizontal - no rotation
+    }
+  }
+  
+  // Initialize words when component mounts
+  useEffect(() => {
+    const initialWords = []
+    for (let i = 0; i < wordCount; i++) {
+      initialWords.push(createWord())
+    }
+    setWords(initialWords)
+  }, [wordCount])
+  
+  // Create overlay container
+  useEffect(() => {
+    let overlayDiv = document.getElementById('scrambling-words-overlay')
+    if (!overlayDiv) {
+      overlayDiv = document.createElement('div')
+      overlayDiv.id = 'scrambling-words-overlay'
+      overlayDiv.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        z-index: 1000;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+      `
+      document.body.appendChild(overlayDiv)
+      containerRef.current = overlayDiv
+    }
+    
+    return () => {
+      const div = document.getElementById('scrambling-words-overlay')
+      if (div) {
+        document.body.removeChild(div)
+      }
+    }
+  }, [])
+  
+  useFrame(() => {
+    if (!scroll) return
+    
+    const scrollOffset = scroll.offset
+    
+    // Check if we're in the active scroll range
+    if (scrollOffset >= scrollStart && scrollOffset <= scrollEnd) {
+      if (!isActive) {
+        setIsActive(true)
+      }
+      
+      // Update each word
+      setWords(prevWords => {
+        return prevWords.map(word => {
+          const newWord = { ...word }
+          
+          switch (newWord.phase) {
+            case 'scrambling':
+              // Generate scrambling text
+              newWord.scrambleProgress += newWord.speed
+              if (newWord.scrambleProgress >= 1) {
+                newWord.phase = 'revealing'
+                newWord.revealProgress = 0
+              } else {
+                // Create scrambled text
+                const scrambleLength = Math.floor(newWord.scrambleProgress * newWord.originalWord.length)
+                const scrambledPart = Array.from({ length: scrambleLength }, () => getRandomChar()).join('')
+                const remainingPart = newWord.originalWord.slice(scrambleLength)
+                newWord.currentText = scrambledPart + remainingPart
+              }
+              break
+              
+            case 'revealing':
+              // Reveal the actual word character by character
+              newWord.revealProgress += newWord.speed * 2
+              if (newWord.revealProgress >= 1) {
+                newWord.phase = 'visible'
+                newWord.currentText = newWord.originalWord
+                newWord.visibleTime = 0
+              } else {
+                const revealLength = Math.floor(newWord.revealProgress * newWord.originalWord.length)
+                const revealedPart = newWord.originalWord.slice(0, revealLength)
+                const scrambledPart = Array.from({ 
+                  length: newWord.originalWord.length - revealLength 
+                }, () => getRandomChar()).join('')
+                newWord.currentText = revealedPart + scrambledPart
+              }
+              break
+              
+            case 'visible':
+              // Keep the word visible for a moment
+              newWord.visibleTime += newWord.speed * 10
+              if (newWord.visibleTime >= 1) {
+                newWord.phase = 'fading'
+                newWord.fadeProgress = 0
+              }
+              break
+              
+            case 'fading':
+              // Fade out and create new word
+              newWord.fadeProgress += newWord.speed * 2
+              if (newWord.fadeProgress >= 1) {
+                // Replace with new word
+                return createWord()
+              }
+              break
+          }
+          
+          return newWord
+        })
+      })
+    } else {
+      if (isActive) {
+        setIsActive(false)
+        // Reset all words when out of scroll range
+        setWords(prevWords => prevWords.map(() => createWord()))
+      }
+    }
+  })
+  
+  // Render words to HTML overlay
+  useEffect(() => {
+    if (!containerRef.current) return
+    
+    const container = containerRef.current
+    container.innerHTML = ''
+    
+    words.forEach((word) => {
+      // Calculate opacity based on phase and scroll position
+      let opacity = 0
+      let color = '#ffffff' // Default transparent white
+      
+      if (isActive) {
+        // Only show red color when section is active
+        color = '#ff0040'
+        
+        switch (word.phase) {
+          case 'scrambling':
+            opacity = 0.3 * (0.5 + word.scrambleProgress * 0.5)
+            break
+          case 'revealing':
+            opacity = 0.3 * (0.7 + word.revealProgress * 0.3)
+            break
+          case 'visible':
+            opacity = 0.3
+            break
+          case 'fading':
+            opacity = 0.3 * (1 - word.fadeProgress)
+            break
+        }
+      } else {
+        // When section is not active, show transparent white
+        opacity = 0.1
+        color = '#ffffff'
+      }
+      
+      const wordElement = document.createElement('div')
+      wordElement.textContent = word.currentText || word.originalWord
+      wordElement.style.cssText = `
+        position: absolute;
+        left: ${word.position.x}px;
+        top: ${word.position.y}px;
+        font-size: ${word.fontSize}px;
+        color: ${color};
+        opacity: ${opacity};
+        text-shadow: ${color === '#ff0040' ? '0 0 10px #ff0040, 0 0 20px #ff0040, 0 0 30px #ff0040' : 'none'};
+        transform: scale(${0.8 + Math.sin(Date.now() * 0.001 + word.id) * 0.2});
+        white-space: nowrap;
+        user-select: none;
+        transition: none;
+        filter: blur(${Math.sin(Date.now() * 0.002 + word.id) * 0.5}px);
+        letter-spacing: ${Math.sin(Date.now() * 0.003 + word.id) * 2}px;
+      `
+      
+      container.appendChild(wordElement)
+    })
+  }, [words, isActive])
+  
+  return null // This component renders to HTML overlay, not 3D scene
+}
+
+export default ScramblingWords
