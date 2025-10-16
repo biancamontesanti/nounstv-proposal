@@ -15,16 +15,17 @@ function SmoothScrollPresentation({
   horizontal = false,
   config = {},
   scrollIndicator = true,
-  scrollIndicatorStyle = {}
+  scrollIndicatorStyle = {},
+  isMobile = false
 }) {
   const [scrollProgress, setScrollProgress] = useState(0)
   const { viewport } = useThree()
   
-  // Enhanced smooth scroll configuration
+  // Enhanced smooth scroll configuration with mobile optimizations
   const scrollConfig = {
     pages,
-    damping: damping || config.damping || 0.1,
-    eps: eps || config.eps || 0.001,
+    damping: isMobile ? (damping || config.damping || 0.1) * 1.5 : (damping || config.damping || 0.1), // More damping on mobile
+    eps: isMobile ? (eps || config.eps || 0.001) * 2 : (eps || config.eps || 0.001), // Higher threshold on mobile
     infinite,
     horizontal,
     ...config
@@ -44,6 +45,7 @@ function SmoothScrollPresentation({
             <ScrollIndicator 
               progress={scrollProgress} 
               style={scrollIndicatorStyle}
+              isMobile={isMobile}
             />
           )}
         </Scroll>
@@ -55,7 +57,7 @@ function SmoothScrollPresentation({
 /**
  * ScrollIndicator - Visual indicator of scroll progress
  */
-function ScrollIndicator({ progress = 0, style = {} }) {
+function ScrollIndicator({ progress = 0, style = {}, isMobile = false }) {
   const [isVisible, setIsVisible] = useState(true)
   
   useEffect(() => {
@@ -78,15 +80,16 @@ function ScrollIndicator({ progress = 0, style = {} }) {
   
   const defaultStyle = {
     position: 'fixed',
-    bottom: '20px',
-    right: '20px',
-    width: '4px',
-    height: '60px',
+    bottom: isMobile ? '15px' : '20px',
+    right: isMobile ? '15px' : '20px',
+    width: isMobile ? '3px' : '4px',
+    height: isMobile ? '50px' : '60px',
     background: 'rgba(255,255,255,0.1)',
     borderRadius: '2px',
     overflow: 'hidden',
     transition: 'opacity 0.3s',
     opacity: isVisible ? 1 : 0.3,
+    zIndex: 1000,
     ...style
   }
   

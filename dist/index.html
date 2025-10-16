@@ -3,9 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#000000" />
     <title>Nouns TV - Dynamic Presentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Londrina+Solid:wght@100;300;400;900&display=swap" rel="stylesheet">
     <style>
+      * {
+        box-sizing: border-box;
+      }
+      
       body {
         margin: 0;
         padding: 0;
@@ -13,14 +24,44 @@
         color: #fff;
         font-family: 'Arial', sans-serif;
         overflow: hidden;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
       }
       
       #root {
         width: 100vw;
         height: 100vh;
+        height: 100dvh; /* Dynamic viewport height for mobile */
+        position: relative;
+        overflow: hidden;
+      }
+      
+      /* Mobile-specific styles */
+      @media (max-width: 768px) {
+        body {
+          font-size: 14px;
+        }
+        
+        #root {
+          height: 100vh;
+          height: 100dvh;
+        }
+      }
+      
+      /* Prevent zoom on double tap for iOS */
+      @media (hover: none) and (pointer: coarse) {
+        * {
+          touch-action: manipulation;
+        }
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-UeNtUZvm.js"></script>
+    <script type="module" crossorigin src="/assets/index-CEPeJWSa.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BctC1pmH.css">
   </head>
   <body>
     <div id="root"></div>

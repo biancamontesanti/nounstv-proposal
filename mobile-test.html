@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <title>Nouns TV - Mobile Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .test-item {
+            background: #111;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        
+        .responsive-text {
+            font-size: clamp(14px, 4vw, 24px);
+            line-height: 1.4;
+        }
+        
+        .mobile-hint {
+            background: #ff0040;
+            color: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        
+        .viewport-info {
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="responsive-text">Nouns TV - Mobile Responsiveness Test</h1>
+        
+        <div class="mobile-hint">
+            👆 This page tests mobile responsiveness
+        </div>
+        
+        <div class="test-item">
+            <h2>Viewport Information</h2>
+            <div class="viewport-info" id="viewport-info">
+                Loading...
+            </div>
+        </div>
+        
+        <div class="test-item">
+            <h2>Responsive Text Test</h2>
+            <p class="responsive-text">
+                This text should scale properly on different screen sizes. 
+                It uses clamp() for responsive font sizing.
+            </p>
+        </div>
+        
+        <div class="test-item">
+            <h2>Touch Test</h2>
+            <button onclick="alert('Touch works!')" style="
+                background: #5648ed;
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 8px;
+                font-size: 16px;
+                cursor: pointer;
+                min-height: 44px;
+                min-width: 44px;
+            ">
+                Tap Me
+            </button>
+        </div>
+        
+        <div class="test-item">
+            <h2>Scroll Test</h2>
+            <p>Try scrolling on this page to test scroll behavior.</p>
+            <div style="height: 200px; background: #222; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                <p>Scroll area</p>
+            </div>
+        </div>
+        
+        <div class="test-item">
+            <h2>Orientation Test</h2>
+            <p>Try rotating your device to test orientation changes.</p>
+            <div id="orientation-info" class="viewport-info">
+                Current orientation: <span id="orientation"></span>
+            </div>
+        </div>
+        
+        <div class="test-item">
+            <h2>Performance Test</h2>
+            <p>This section tests if the page performs well on mobile devices.</p>
+            <div id="performance-info" class="viewport-info">
+                Performance metrics will appear here...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Viewport information
+        function updateViewportInfo() {
+            const info = document.getElementById('viewport-info');
+            info.innerHTML = `
+                Width: ${window.innerWidth}px<br>
+                Height: ${window.innerHeight}px<br>
+                Device Pixel Ratio: ${window.devicePixelRatio}<br>
+                User Agent: ${navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'}
+            `;
+        }
+        
+        // Orientation information
+        function updateOrientation() {
+            const orientation = document.getElementById('orientation');
+            orientation.textContent = window.innerWidth > window.innerHeight ? 'Landscape' : 'Portrait';
+        }
+        
+        // Performance monitoring
+        function updatePerformance() {
+            const perfInfo = document.getElementById('performance-info');
+            const memory = performance.memory;
+            if (memory) {
+                perfInfo.innerHTML = `
+                    Used Memory: ${Math.round(memory.usedJSHeapSize / 1024 / 1024)}MB<br>
+                    Total Memory: ${Math.round(memory.totalJSHeapSize / 1024 / 1024)}MB<br>
+                    Memory Limit: ${Math.round(memory.jsHeapSizeLimit / 1024 / 1024)}MB
+                `;
+            } else {
+                perfInfo.innerHTML = 'Memory info not available';
+            }
+        }
+        
+        // Update on load and resize
+        window.addEventListener('load', () => {
+            updateViewportInfo();
+            updateOrientation();
+            updatePerformance();
+        });
+        
+        window.addEventListener('resize', () => {
+            updateViewportInfo();
+            updateOrientation();
+        });
+        
+        // Update performance every 5 seconds
+        setInterval(updatePerformance, 5000);
+        
+        // Prevent zoom on double tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+</html>

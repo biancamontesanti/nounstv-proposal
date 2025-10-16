@@ -1,7 +1,16 @@
 import React, { useRef, useEffect, useState } from 'react'
-import { Text } from '@react-three/drei'
+import { Text, useScroll } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { gsap } from 'gsap'
+import { BloomLayer } from './SelectiveBloom'
+
+// Font URLs for Londrina Solid weights
+const FONT_URLS = {
+  100: '/fonts/londrina-solid-latin-100-normal.woff',
+  300: '/fonts/londrina-solid-latin-300-normal.woff',
+  400: '/fonts/londrina-solid-latin-400-normal.woff',
+  900: '/fonts/londrina-solid-latin-900-normal.woff'
+}
 
 /**
  * FadeInText - Text that fades in when triggered
@@ -16,6 +25,9 @@ export function FadeInText({
   anchorX = "center",
   anchorY = "middle",
   maxWidth = 20,
+  fontWeight = 400,
+  bloom = false, // New prop to control bloom
+  isMobile = false, // Mobile optimization
   ...props 
 }) {
   const textRef = useRef()
@@ -32,14 +44,14 @@ export function FadeInText({
     if (isReady && textRef.current) {
       gsap.to(textRef.current.material, {
         opacity: 1,
-        duration: duration,
-        delay: delay,
-        ease: "power2.out"
+        duration: isMobile ? duration * 0.7 : duration, // Faster animations on mobile
+        delay: isMobile ? delay * 0.5 : delay, // Shorter delays on mobile
+        ease: isMobile ? "power1.out" : "power2.out" // Simpler easing on mobile
       })
     }
-  }, [isReady, delay, duration])
+  }, [isReady, delay, duration, isMobile])
   
-  return (
+  const textElement = (
     <Text
       ref={textRef}
       position={position}
@@ -48,6 +60,7 @@ export function FadeInText({
       anchorX={anchorX}
       anchorY={anchorY}
       maxWidth={maxWidth}
+      font={FONT_URLS[fontWeight] || FONT_URLS[400]}
       material-transparent
       material-toneMapped={false}
       {...props}
@@ -55,6 +68,12 @@ export function FadeInText({
       {children}
     </Text>
   )
+
+  return bloom ? (
+    <BloomLayer enabled={bloom}>
+      {textElement}
+    </BloomLayer>
+  ) : textElement
 }
 
 /**
@@ -72,6 +91,8 @@ export function SlideInText({
   anchorX = "center",
   anchorY = "middle",
   maxWidth = 20,
+  fontWeight = 400,
+  bloom = false, // New prop to control bloom
   ...props 
 }) {
   const textRef = useRef()
@@ -120,7 +141,7 @@ export function SlideInText({
     }
   }, [isReady, position, delay, duration])
   
-  return (
+  const textElement = (
     <Text
       ref={textRef}
       position={position}
@@ -129,6 +150,7 @@ export function SlideInText({
       anchorX={anchorX}
       anchorY={anchorY}
       maxWidth={maxWidth}
+      font={FONT_URLS[fontWeight] || FONT_URLS[400]}
       material-transparent
       material-toneMapped={false}
       {...props}
@@ -136,10 +158,16 @@ export function SlideInText({
       {children}
     </Text>
   )
+
+  return bloom ? (
+    <BloomLayer enabled={bloom}>
+      {textElement}
+    </BloomLayer>
+  ) : textElement
 }
 
 /**
- * TypewriterText - Text that appears letter by letter
+ * TypewriterText - Text that appears letter by letter with optional blinking cursor
  */
 export function TypewriterText({ 
   children, 
@@ -151,45 +179,106 @@ export function TypewriterText({
   anchorX = "center",
   anchorY = "middle",
   maxWidth = 20,
+  fontWeight = 400,
+  showCursor = true, // New prop to show/hide blinking cursor
+  cursorColor = "#ff0040", // Color for the cursor
+  scrollStart = 0, // Scroll position to start animation
+  scrollEnd = 1, // Scroll position to end animation
   ...props 
 }) {
   const textRef = useRef()
+  const cursorRef = useRef()
+  const scroll = useScroll()
   const [displayText, setDisplayText] = useState('')
+  const [index, setIndex] = useState(0)
+  const [showCursorBlink, setShowCursorBlink] = useState(true)
+  const [isTyping, setIsTyping] = useState(false) // Start as false until scroll triggers
+  const [hasStarted, setHasStarted] = useState(false)
   const fullText = children?.toString() || ''
   
-  useEffect(() => {
-    let currentIndex = 0
-    const timer = setTimeout(() => {
-      const interval = setInterval(() => {
-        if (currentIndex <= fullText.length) {
-          setDisplayText(fullText.substring(0, currentIndex))
-          currentIndex++
-        } else {
-          clearInterval(interval)
-        }
-      }, speed)
+  // Scroll detection
+  useFrame(() => {
+    if (scroll && !hasStarted) {
+      const scrollOffset = scroll.offset
       
-      return () => clearInterval(interval)
-    }, delay * 1000)
+      // Check if we're in the scroll range
+      if (scrollOffset >= scrollStart && scrollOffset <= scrollEnd) {
+        setHasStarted(true)
+        setIsTyping(true)
+      }
+    }
+  })
+  
+  useEffect(() => {
+    // Reset state when fullText changes
+    setDisplayText('')
+    setIndex(0)
+    setIsTyping(false)
+    setHasStarted(false)
+  }, [fullText])
+  
+  useEffect(() => {
+    if (isTyping && index < fullText.length) {
+      const timeout = setTimeout(() => {
+        setDisplayText((prev) => prev + fullText[index])
+        setIndex((prev) => prev + 1)
+      }, index === 0 ? delay * 1000 : speed)
+      
+      return () => clearTimeout(timeout)
+    } else if (index >= fullText.length) {
+      setIsTyping(false)
+    }
+  }, [index, fullText, speed, delay, isTyping])
+  
+  // Cursor blinking effect
+  useEffect(() => {
+    if (!showCursor || isTyping) return
     
-    return () => clearTimeout(timer)
-  }, [fullText, delay, speed])
+    const interval = setInterval(() => {
+      setShowCursorBlink((prev) => !prev)
+    }, 530) // Standard cursor blink speed
+    
+    return () => clearInterval(interval)
+  }, [showCursor, isTyping])
   
   return (
-    <Text
-      ref={textRef}
-      position={position}
-      fontSize={fontSize}
-      color={color}
-      anchorX={anchorX}
-      anchorY={anchorY}
-      maxWidth={maxWidth}
-      material-transparent
-      material-toneMapped={false}
-      {...props}
-    >
-      {displayText}
-    </Text>
+    <group>
+      <Text
+        ref={textRef}
+        position={position}
+        fontSize={fontSize}
+        color={color}
+        anchorX={anchorX}
+        anchorY={anchorY}
+        maxWidth={maxWidth}
+        font={FONT_URLS[fontWeight] || FONT_URLS[400]}
+        material-transparent
+        material-toneMapped={false}
+        {...props}
+      >
+        {displayText}
+      </Text>
+      {showCursor && (
+        <Text
+          ref={cursorRef}
+          position={[
+            position[0] + (displayText.length * fontSize * 0.3), // Approximate cursor position
+            position[1], 
+            position[2]
+          ]}
+          fontSize={fontSize}
+          color={cursorColor}
+          anchorX={anchorX}
+          anchorY={anchorY}
+          font={FONT_URLS[fontWeight] || FONT_URLS[400]}
+          material-transparent
+          material-toneMapped={false}
+          material-opacity={showCursorBlink || isTyping ? 1 : 0}
+        >
+          |
+        </Text>
+      )}
+    </group>
   )
 }
 
@@ -206,6 +295,7 @@ export function GlitchText({
   anchorX = "center",
   anchorY = "middle",
   maxWidth = 20,
+  fontWeight = 400,
   ...props 
 }) {
   const textRef = useRef()
@@ -230,6 +320,8 @@ export function GlitchText({
     }
   })
   
+  const fontUrl = FONT_URLS[fontWeight] || FONT_URLS[400]
+  
   return (
     <group>
       <Text
@@ -240,6 +332,7 @@ export function GlitchText({
         anchorX={anchorX}
         anchorY={anchorY}
         maxWidth={maxWidth}
+        font={fontUrl}
         material-transparent
         material-toneMapped={false}
         {...props}
@@ -254,6 +347,7 @@ export function GlitchText({
         anchorX={anchorX}
         anchorY={anchorY}
         maxWidth={maxWidth}
+        font={fontUrl}
         material-transparent
         material-toneMapped={false}
         material-opacity={0}
@@ -269,6 +363,7 @@ export function GlitchText({
         anchorX={anchorX}
         anchorY={anchorY}
         maxWidth={maxWidth}
+        font={fontUrl}
         material-transparent
         material-toneMapped={false}
         material-opacity={0}
@@ -293,6 +388,7 @@ export function PulseText({
   anchorX = "center",
   anchorY = "middle",
   maxWidth = 20,
+  fontWeight = 400,
   ...props 
 }) {
   const textRef = useRef()
@@ -313,6 +409,7 @@ export function PulseText({
       anchorX={anchorX}
       anchorY={anchorY}
       maxWidth={maxWidth}
+      font={FONT_URLS[fontWeight] || FONT_URLS[400]}
       material-transparent
       material-toneMapped={false}
       {...props}

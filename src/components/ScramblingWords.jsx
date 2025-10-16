@@ -185,56 +185,86 @@ function ScramblingWords({ scrollStart, scrollEnd, wordCount = 8 }) {
     const container = containerRef.current
     container.innerHTML = ''
     
-    words.forEach((word) => {
-      // Calculate opacity based on phase and scroll position
-      let opacity = 0
-      let color = '#ffffff' // Default transparent white
-      
-      if (isActive) {
-        // Only show red color when section is active
-        color = '#ff0040'
+      words.forEach((word) => {
+        // Calculate opacity based on phase and scroll position
+        let opacity = 0
+        let color = '#000000' // Default black to match background
         
-        switch (word.phase) {
-          case 'scrambling':
-            opacity = 0.3 * (0.5 + word.scrambleProgress * 0.5)
-            break
-          case 'revealing':
-            opacity = 0.3 * (0.7 + word.revealProgress * 0.3)
-            break
-          case 'visible':
-            opacity = 0.3
-            break
-          case 'fading':
-            opacity = 0.3 * (1 - word.fadeProgress)
-            break
+        if (isActive) {
+          // Only show red color when section is active
+          color = '#ff0040'
+          
+          // Enhanced emerge effect with smooth transitions
+          switch (word.phase) {
+            case 'scrambling':
+              opacity = 0.4 * (0.2 + word.scrambleProgress * 0.8) // Start very subtle, build up
+              break
+            case 'revealing':
+              opacity = 0.4 * (0.8 + word.revealProgress * 0.2) // Peak opacity during reveal
+              break
+            case 'visible':
+              opacity = 0.4 // Full visibility
+              break
+            case 'fading':
+              opacity = 0.4 * (1 - word.fadeProgress * word.fadeProgress) // Smooth fade with easing
+              break
+          }
+        } else {
+          // When section is not active, make completely invisible
+          opacity = 0
+          color = '#000000'
         }
-      } else {
-        // When section is not active, show transparent white
-        opacity = 0.1
-        color = '#ffffff'
-      }
-      
-      const wordElement = document.createElement('div')
-      wordElement.textContent = word.currentText || word.originalWord
-      wordElement.style.cssText = `
-        position: absolute;
-        left: ${word.position.x}px;
-        top: ${word.position.y}px;
-        font-size: ${word.fontSize}px;
-        color: ${color};
-        opacity: ${opacity};
-        text-shadow: ${color === '#ff0040' ? '0 0 10px #ff0040, 0 0 20px #ff0040, 0 0 30px #ff0040' : 'none'};
-        transform: scale(${0.8 + Math.sin(Date.now() * 0.001 + word.id) * 0.2});
-        white-space: nowrap;
-        user-select: none;
-        transition: none;
-        filter: blur(${Math.sin(Date.now() * 0.002 + word.id) * 0.5}px);
-        letter-spacing: ${Math.sin(Date.now() * 0.003 + word.id) * 2}px;
-      `
-      
-      container.appendChild(wordElement)
-    })
-  }, [words, isActive])
+        
+        const wordElement = document.createElement('div')
+        wordElement.textContent = word.currentText || word.originalWord
+        
+        // Enhanced emerge/fade effects
+        let scale = 0.8 + Math.sin(Date.now() * 0.001 + word.id) * 0.2
+        let blur = Math.sin(Date.now() * 0.002 + word.id) * 0.5
+        let letterSpacing = Math.sin(Date.now() * 0.003 + word.id) * 2
+        let glowIntensity = 1
+        
+        if (isActive) {
+          // Emerge effect - start small and blurry, become clear and larger
+          if (word.phase === 'scrambling') {
+            scale = 0.6 + (word.scrambleProgress * 0.4) + Math.sin(Date.now() * 0.001 + word.id) * 0.1
+            blur = 2 - (word.scrambleProgress * 1.5) + Math.sin(Date.now() * 0.002 + word.id) * 0.3
+            glowIntensity = 0.5 + word.scrambleProgress * 0.5
+          } else if (word.phase === 'revealing') {
+            scale = 1.0 + (word.revealProgress * 0.1) + Math.sin(Date.now() * 0.001 + word.id) * 0.15
+            blur = 0.5 - (word.revealProgress * 0.3) + Math.sin(Date.now() * 0.002 + word.id) * 0.2
+            glowIntensity = 1
+          } else if (word.phase === 'visible') {
+            scale = 1.1 + Math.sin(Date.now() * 0.001 + word.id) * 0.2
+            blur = 0.2 + Math.sin(Date.now() * 0.002 + word.id) * 0.3
+            glowIntensity = 1
+          } else if (word.phase === 'fading') {
+            // Fade out effect - become smaller, blurrier, and less glowing
+            scale = 1.1 - (word.fadeProgress * 0.5) + Math.sin(Date.now() * 0.001 + word.id) * 0.1
+            blur = 0.2 + (word.fadeProgress * 1.8) + Math.sin(Date.now() * 0.002 + word.id) * 0.2
+            glowIntensity = 1 - word.fadeProgress
+          }
+        }
+        
+        wordElement.style.cssText = `
+          position: absolute;
+          left: ${word.position.x}px;
+          top: ${word.position.y}px;
+          font-size: ${word.fontSize}px;
+          color: ${color};
+          opacity: ${opacity};
+          text-shadow: ${color === '#ff0040' ? `0 0 ${10 * glowIntensity}px #ff0040, 0 0 ${20 * glowIntensity}px #ff0040, 0 0 ${30 * glowIntensity}px #ff0040` : 'none'};
+          transform: scale(${scale});
+          white-space: nowrap;
+          user-select: none;
+          transition: opacity 0.1s ease-out, transform 0.1s ease-out;
+          filter: blur(${blur}px);
+          letter-spacing: ${letterSpacing}px;
+        `
+        
+        container.appendChild(wordElement)
+      })
+    }, [words, isActive])
   
   return null // This component renders to HTML overlay, not 3D scene
 }

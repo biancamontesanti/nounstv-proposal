@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile Debug - Nouns TV</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        
+        .debug-info {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .mobile-indicator {
+            background: #ff0040;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        
+        .test-section {
+            background: #111;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        
+        .desktop-text {
+            display: block;
+        }
+        
+        .mobile-text {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .desktop-text {
+                display: none;
+            }
+            
+            .mobile-text {
+                display: block;
+            }
+            
+            .mobile-indicator {
+                background: #00ff00;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Mobile Debug Test</h1>
+    
+    <div class="mobile-indicator" id="mobile-indicator">
+        🖥️ DESKTOP MODE
+    </div>
+    
+    <div class="debug-info" id="debug-info">
+        Loading debug info...
+    </div>
+    
+    <div class="test-section">
+        <h2>CSS Media Query Test</h2>
+        <div class="desktop-text">
+            <p>✅ Desktop text is showing - CSS media queries are working</p>
+            <p>This text should only appear on desktop (width > 768px)</p>
+        </div>
+        <div class="mobile-text">
+            <p>📱 Mobile text is showing - CSS media queries are working</p>
+            <p>This text should only appear on mobile (width ≤ 768px)</p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>JavaScript Detection Test</h2>
+        <div id="js-detection">
+            Testing JavaScript mobile detection...
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Touch Support Test</h2>
+        <div id="touch-test">
+            Testing touch support...
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>User Agent Test</h2>
+        <div id="user-agent">
+            Loading user agent...
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Instructions</h2>
+        <p>1. Open this page on your mobile device</p>
+        <p>2. Check if the mobile indicator turns green</p>
+        <p>3. Verify that mobile-specific text appears</p>
+        <p>4. Test touch interactions</p>
+        <p>5. Use browser dev tools to simulate mobile</p>
+    </div>
+
+    <script>
+        function updateDebugInfo() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            // Enhanced mobile detection (same as App.jsx)
+            const isMobileDevice = width <= 768 || 
+                /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                ('ontouchstart' in window) ||
+                (navigator.maxTouchPoints > 0);
+            
+            // Update mobile indicator
+            const indicator = document.getElementById('mobile-indicator');
+            if (isMobileDevice) {
+                indicator.textContent = '📱 MOBILE MODE';
+                indicator.style.background = '#00ff00';
+            } else {
+                indicator.textContent = '🖥️ DESKTOP MODE';
+                indicator.style.background = '#ff0040';
+            }
+            
+            // Update debug info
+            document.getElementById('debug-info').innerHTML = `
+                <strong>Viewport:</strong> ${width} x ${height}<br>
+                <strong>Mobile Detected:</strong> ${isMobileDevice ? 'YES' : 'NO'}<br>
+                <strong>Width Check:</strong> ${width <= 768 ? 'MOBILE' : 'DESKTOP'}<br>
+                <strong>Touch Support:</strong> ${'ontouchstart' in window ? 'YES' : 'NO'}<br>
+                <strong>Max Touch Points:</strong> ${navigator.maxTouchPoints || 0}<br>
+                <strong>Device Pixel Ratio:</strong> ${window.devicePixelRatio}
+            `;
+            
+            // JavaScript detection test
+            document.getElementById('js-detection').innerHTML = `
+                <strong>JavaScript Mobile Detection:</strong> ${isMobileDevice ? '✅ MOBILE' : '❌ DESKTOP'}<br>
+                <strong>Logic:</strong> width(${width}) <= 768 OR user agent OR touch support
+            `;
+            
+            // Touch test
+            document.getElementById('touch-test').innerHTML = `
+                <strong>Touch Events:</strong> ${'ontouchstart' in window ? '✅ Supported' : '❌ Not supported'}<br>
+                <strong>Touch Points:</strong> ${navigator.maxTouchPoints || 0}<br>
+                <strong>Pointer Events:</strong> ${window.PointerEvent ? '✅ Supported' : '❌ Not supported'}
+            `;
+            
+            // User agent
+            document.getElementById('user-agent').innerHTML = `
+                <strong>User Agent:</strong><br>
+                <small>${navigator.userAgent}</small><br><br>
+                <strong>Mobile Pattern Match:</strong> ${/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? '✅ MOBILE' : '❌ DESKTOP'}
+            `;
+        }
+        
+        // Update on load and resize
+        updateDebugInfo();
+        window.addEventListener('resize', updateDebugInfo);
+        
+        // Test touch events
+        document.addEventListener('touchstart', function() {
+            console.log('Touch event detected!');
+        });
+        
+        // Log everything to console
+        console.log('Mobile Debug Page Loaded');
+        console.log('Initial mobile detection:', {
+            width: window.innerWidth,
+            height: window.innerHeight,
+            userAgent: navigator.userAgent,
+            touchSupport: 'ontouchstart' in window,
+            maxTouchPoints: navigator.maxTouchPoints
+        });
+    </script>
+</body>
+</html>

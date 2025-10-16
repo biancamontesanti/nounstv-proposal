@@ -5,15 +5,11 @@ import ScrambleTitle from './ScrambleTitle'
 import GridAnimation from './GridAnimation'
 import ScramblingWords from './ScramblingWords'
 import { NogglesCoverScreen } from './AnimatedNoggles'
+import VideoEmbed from './VideoEmbed'
 import { useScroll } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { 
-  FadeInText, 
-  SlideInText, 
-  TypewriterText, 
-  GlitchText,
-  PulseText 
-} from './AnimatedText'
+import { SimpleText, SimpleList } from './SimpleText'
+import { MobileText, MobileList } from './MobileText'
 import { 
   AnimatedLine, 
   AnimatedBox, 
@@ -22,41 +18,9 @@ import {
 } from './AnimatedElements'
 
 /**
- * BulletList - Modular bullet point list component
- */
-function BulletList({ items, position, delay = 0 }) {
-  return (
-    <group position={position}>
-      {items.map((item, index) => (
-        <group key={index} position={[0, -index * 0.7, 0]}>
-          <AnimatedBox
-            position={[-6, 0, 0]}
-            size={[0.12, 0.12, 0.12]}
-          color="#ff0040"
-            animation="scale"
-            delay={delay + index * 0.1}
-          />
-          <SlideInText
-            position={[-5.5, 0, 0]}
-            fontSize={0.4}
-            color="#ffffff"
-            anchorX="left"
-            delay={delay + index * 0.1 + 0.05}
-            from="left"
-            distance={1.5}
-          >
-            {item.replace(/\*\*/g, '')}
-          </SlideInText>
-        </group>
-      ))}
-    </group>
-  )
-}
-
-/**
  * SimpleNoggleOverlay - Simpler version using React Portal
  */
-function SimpleNoggleOverlay({ scrollStart, scrollEnd }) {
+function SimpleNoggleOverlay({ scrollStart, scrollEnd, isMobile = false }) {
   const scroll = useScroll()
   const [opacity, setOpacity] = useState(0)
   const [scale, setScale] = useState(0.8)
@@ -91,18 +55,16 @@ function SimpleNoggleOverlay({ scrollStart, scrollEnd }) {
   })
   
   useEffect(() => {
-    const handleMouseMove = (e) => {
+    const handlePointerMove = (e) => {
       const overlayDiv = document.getElementById('noggles-overlay')
       if (overlayDiv && opacity > 0) {
         const rect = overlayDiv.getBoundingClientRect()
         const x = e.clientX - rect.left
         const y = e.clientY - rect.top
         
-        // Check if mouse is inside the overlay area
         const isInside = x >= 0 && x <= rect.width && y >= 0 && y <= rect.height
         
         if (isInside) {
-          // Calculate relative position (0 = left edge, 1 = right edge)
           const relativeX = x / rect.width
           setMousePosition({ x: relativeX, isHovered: true })
         } else {
@@ -111,12 +73,15 @@ function SimpleNoggleOverlay({ scrollStart, scrollEnd }) {
       }
     }
     
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mousemove', handlePointerMove)
+    window.addEventListener('touchmove', handlePointerMove)
+    return () => {
+      window.removeEventListener('mousemove', handlePointerMove)
+      window.removeEventListener('touchmove', handlePointerMove)
+    }
   }, [opacity])
   
   useEffect(() => {
-    // Create overlay div if it doesn't exist
     let overlayDiv = document.getElementById('noggles-overlay')
     if (!overlayDiv) {
       overlayDiv = document.createElement('div')
@@ -161,10 +126,6 @@ function SimpleNoggleOverlay({ scrollStart, scrollEnd }) {
             width: 100%;
             height: 100%;
           ">
-            <!-- Background text that shows through the noggles -->
-   
-            
-            <!-- Noggles SVG -->
             <svg
               id="noggles-svg"
               width="320"
@@ -174,12 +135,13 @@ function SimpleNoggleOverlay({ scrollStart, scrollEnd }) {
               shape-rendering="crispEdges"
               style="
                 filter: drop-shadow(0 0 30px rgba(86, 72, 237, 0.6));
-                width: 60vw;
+                width: ${isMobile ? '80vw' : '60vw'};
                 height: auto;
                 position: relative;
                 z-index: 1;
                 cursor: pointer;
                 transition: transform 0.3s ease-out;
+                touch-action: manipulation;
               "
             >
               <rect width="100%" height="100%" fill="none" />
@@ -231,11 +193,7 @@ function SimpleNoggleOverlay({ scrollStart, scrollEnd }) {
     const svgElement = document.getElementById('noggles-svg')
     if (svgElement) {
       if (mousePosition.isHovered) {
-        // Map mouse position (0-1) to movement (-30% to +30%)
-        // 0 = left side = move left (-30%)
-        // 0.5 = center = no movement (0%)
-        // 1 = right side = move right (+30%)
-        const movement = (mousePosition.x - 0.5) * 60 // Range: -30 to +30
+        const movement = (mousePosition.x - 0.5) * 60
         svgElement.style.transform = `translateX(${movement}%)`
       } else {
         svgElement.style.transform = 'translateX(0)'
@@ -247,10 +205,26 @@ function SimpleNoggleOverlay({ scrollStart, scrollEnd }) {
 }
 
 /**
- * ScrollPresentation - Main presentation component using modular architecture
+ * ScrollPresentation - Ultra-simple production-ready presentation
  */
-function ScrollPresentation() {
-  // Define sections with their configurations
+function ScrollPresentation({ isMobile = false, viewport = { width: 1920, height: 1080 } }) {
+  const [showLoading, setShowLoading] = useState(isMobile)
+
+  // Hide loading screen after delay
+  useEffect(() => {
+    if (isMobile && showLoading) {
+      const timer = setTimeout(() => {
+        setShowLoading(false)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [isMobile, showLoading])
+
+  // Choose text component based on mobile
+  const TextComponent = isMobile ? MobileText : SimpleText
+  const ListComponent = isMobile ? MobileList : SimpleList
+
+  // Define sections with ultra-simple animations
   const sections = useMemo(() => [
     {
       id: 'intro',
@@ -265,10 +239,10 @@ function ScrollPresentation() {
             scrollStart={0}
             scrollEnd={0.05}
             delay={1.5}
+            fontSize={isMobile ? 0.8 : 1.2}
           >
             The future belongs to creators
           </ScrambleTitle>
-  :
         </group>
       )
     },
@@ -279,14 +253,16 @@ function ScrollPresentation() {
       position: [0, -7, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={1.2}
-          color="#ff0040"
-          delay={0.2}
+          fontSize={isMobile ? 0.8 : 1.2}
+          color="#5648ed"
+          fontWeight={900}
+          scrollStart={0.03}
+          scrollEnd={0.09}
         >
           Put your noggles on
-        </FadeInText>
+        </TextComponent>
       )
     },
     {
@@ -296,14 +272,16 @@ function ScrollPresentation() {
       position: [0, -18, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={0.8}
+          fontSize={isMobile ? 0.7 : 0.8}
           color="#ffffff"
-          delay={0.2}
+          fontWeight={400}
+          scrollStart={0.10}
+          scrollEnd={0.15}
         >
-          Welcome to Nouns TV
-        </FadeInText>
+          This is Nouns TV
+        </TextComponent>
       )
     },
     {
@@ -313,60 +291,78 @@ function ScrollPresentation() {
       position: [0, -21, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
           fontSize={0.6}
           color="#cccccc"
-          delay={0.2}
+          fontWeight={300}
+          scrollStart={0.11}
+          scrollEnd={0.16}
         >
           A complete OTT platform.
-        </FadeInText>
+        </TextComponent>
       )
     },
     {
       id: 'description',
       scrollStart: 0.13,
       scrollEnd: 0.18,
-      position: [0, -29, 0],
+      position: [0, -30, 0],
       animation: 'fade',
       content: (
-        <FadeInText
-          position={[0, 0, 0]}
-          fontSize={0.5}
+        <TextComponent
+          position={[0, -2, 0]}
+          fontSize={isMobile ? 0.4 : 0.5}
           color="#cccccc"
-          maxWidth={20}
-          textAlign="center"
-          delay={0.2}
+          maxWidth={isMobile ? 16 : 20}
+          textAlign={isMobile ? "left" : "center"}
+          scrollStart={0.13}
+          scrollEnd={0.18}
         >
-          Where artists, filmmakers, and creators{'\n'}can stream and protect their content — all in one place.
-        </FadeInText>
+          {isMobile ? 
+            'Where artists, filmmakers,\nand creators can stream\nand protect their content —\nall in one place.' :
+            'Where artists, filmmakers, and creators\ncan stream and protect their content — all in one place.'
+          }
+        </TextComponent>
       )
     },
     {
       id: 'marketplace',
       scrollStart: 0.17,
       scrollEnd: 0.23,
-      position: [0, -40, 0],
+      position: [0, -38, 0],
       animation: 'fade',
       content: (
         <group>
-          <FadeInText
+          <TextComponent
             position={[0, 2, 0]}
-            fontSize={1}
+            fontSize={isMobile ? 0.7 : 0.9}
             color="#ff0040"
-            delay={0.1}
+            fontWeight={900}
+            maxWidth={isMobile ? 16 : 20}
+            textAlign={isMobile ? "left" : "center"}
+            scrollStart={0.17}
+            scrollEnd={0.23}
           >
-            Integrated marketplace
-          </FadeInText>
-          <BulletList
-            items={[
-        "sell and rent for recorded content",
-        "tickets for live events",
-        "subscriptions for followers",
-        "donations for free content"
-            ]}
+            {isMobile ? 'With an Integrated\nMarketplace' : 'With an Integrated Marketplace'}
+          </TextComponent>
+          <ListComponent
+            items={
+              isMobile ? [
+                "Sell and rent\nrecorded content",
+                "Buy tickets for\nlive events",
+                "Subscribe to\nchannels",
+                "Donate to support\ncreators and causes"
+              ] : [
+                "Creators can sell and rent recorded content",
+                "Buy tickets for live events",
+                "Subscribe to channels",
+                "Make donations to support creators and causes"
+              ]
+            }
             position={[0, 0, 0]}
-            delay={0.3}
+            scrollStart={0.17}
+            scrollEnd={0.23}
           />
         </group>
       )
@@ -387,396 +383,487 @@ function ScrollPresentation() {
     },
     {
       id: 'features',
-      scrollStart: 0.24,
-      scrollEnd: 0.28,
-      position: [0, -55, 0],
+      scrollStart: 0.33,
+      scrollEnd: 0.39,
+      position: [0, -48, 0],
       animation: 'fade',
       content: (
         <group>
-          <BulletList
-            items={[
-        "4K content",
-        "artificial intelligence for subtitles",
-        "channel dashboard",
-        "and more"
-            ]}
+          <TextComponent
+            position={[0, 2.5, 0]}
+            fontSize={isMobile ? 0.7 : 0.9}
+            color="#ff0040"
+            fontWeight={900}
+            maxWidth={isMobile ? 16 : 20}
+            textAlign={isMobile ? "left" : "center"}
+            scrollStart={0.33}
+            scrollEnd={0.39}
+          >
+            Platform Features
+          </TextComponent>
+          <ListComponent
+            items={
+              isMobile ? [
+                "4K content streaming",
+                "AI-powered subtitles",
+                "Channel dashboard",
+                "And more"
+              ] : [
+                "4K content streaming",
+                "Artificial intelligence for subtitles",
+                "Channel dashboard",
+                "And more advanced features"
+              ]
+            }
             position={[0, 0, 0]}
-            delay={0.2}
+            scrollStart={0.33}
+            scrollEnd={0.39}
           />
         </group>
       )
     },
     {
       id: 'ecosystem',
-      scrollStart: 0.26,
-      scrollEnd: 0.32,
-      position: [0, -65, 0],
+      scrollStart: 0.40,
+      scrollEnd: 0.46,
+      position: [0, -58, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={0.5}
+          fontSize={isMobile ? 0.4 : 0.5}
           color="#cccccc"
-          maxWidth={20}
-          textAlign="center"
-          delay={0.2}
+          maxWidth={isMobile ? 16 : 20}
+          textAlign={isMobile ? "left" : "center"}
+          scrollStart={0.40}
+          scrollEnd={0.46}
         >
-          Our ecosystem is powered by Privy, offering a smooth and secure wallet experience for creators and audiences alike — bridging access, content, and ownership.
-        </FadeInText>
+          {isMobile ? 
+            'Our ecosystem is powered\nby Privy, offering a smooth\nand secure wallet experience\nfor creators and audiences —\nbridging access, content,\nand ownership.' :
+            'Our ecosystem is powered by Privy,\noffering a smooth and secure wallet experience\nfor creators and audiences alike —\nbridging access, content, and ownership.'
+          }
+        </TextComponent>
       )
     },
     {
       id: 'screens',
-      scrollStart: 0.30,
-      scrollEnd: 0.36,
-      position: [0, -75, 0],
+      scrollStart: 0.47,
+      scrollEnd: 0.53,
+      position: [0, -68, 0],
       animation: 'fade',
       content: (
         <group>
-          <FadeInText
+          <TextComponent
             position={[0, 2, 0]}
-            fontSize={1}
+            fontSize={isMobile ? 0.7 : 0.9}
             color="#ff0040"
-            delay={0.1}
+            fontWeight={900}
+            maxWidth={isMobile ? 16 : 20}
+            textAlign={isMobile ? "left" : "center"}
+            scrollStart={0.47}
+            scrollEnd={0.53}
           >
-            Optimized for every screen
-          </FadeInText>
-          <FadeInText
+            {isMobile ? 'Optimized for\nEvery Screen' : 'Optimized for Every Screen'}
+          </TextComponent>
+          <TextComponent
             position={[0, 0, 0]}
-            fontSize={0.5}
+            fontSize={isMobile ? 0.4 : 0.5}
             color="#ffffff"
-            delay={0.3}
-            maxWidth={20}
-            textAlign="center"
+            maxWidth={isMobile ? 16 : 20}
+            textAlign={isMobile ? "left" : "center"}
+            fontWeight={400}
+            scrollStart={0.47}
+            scrollEnd={0.53}
           >
-            Web, Smart TVs, Apple TV,{'\n'}iOS, and Android.
-          </FadeInText>
+            {isMobile ? 
+              'Web browsers, Smart TVs,\nApple TV, iOS devices,\nand Android.' :
+              'Web, Smart TVs, Apple TV,\niOS, and Android.'
+            }
+          </TextComponent>
         </group>
       )
     },
     {
       id: 'art-statement',
-      scrollStart: 0.38,
-      scrollEnd: 0.42,
-      position: [0, -84, 0],
+      scrollStart: 0.40,
+      scrollEnd: 0.44,
+      position: [0, -88, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={0.6}
+          fontSize={isMobile ? 0.45 : 0.6}
           color="#cccccc"
-          delay={0.2}
+          fontWeight={400}
+          maxWidth={isMobile ? 16 : 20}
+          scrollStart={0.40}
+          scrollEnd={0.44}
         >
-          We understand that digital content is a work of art.
-        </FadeInText>
+          {isMobile ? 
+            'We understand that\ndigital content\nis a work of art.' :
+            'We understand that digital content is a work of art.'
+          }
+        </TextComponent>
       )
     },
     {
       id: 'protection',
-      scrollStart: 0.44,
-      scrollEnd: 0.48,
-      position: [0, -96, 0],
+      scrollStart: 0.46,
+      scrollEnd: 0.50,
+      position: [0, -98, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={0.6}
+          fontSize={isMobile ? 0.45 : 0.6}
           color="#ff0040"
-          delay={0.2}
+          fontWeight={900}
+          maxWidth={isMobile ? 16 : 20}
+          textAlign="center"
+          scrollStart={0.46}
+          scrollEnd={0.50}
         >
-          And we do everything to protect it.
-        </FadeInText>
+          {isMobile ? 'We do everything\nto protect it.' : 'And we do everything to protect it.'}
+        </TextComponent>
       )
     },
     {
       id: 'security',
-      scrollStart: 0.42,
-      scrollEnd: 0.48,
-      position: [0, -105, 0],
+      scrollStart: 0.54,
+      scrollEnd: 0.60,
+      position: [0, -78, 0],
       animation: 'fade',
       content: (
         <group>
-          <BulletList
+          <ListComponent
             items={[
               "Anti-piracy protection",
               "End-to-end encryption",
               "DRM certification"
             ]}
             position={[0, 0, 0]}
-            delay={0.2}
+            scrollStart={0.54}
+            scrollEnd={0.60}
           />
         </group>
       )
     },
     {
       id: 'worldwide',
-      scrollStart: 0.46,
-      scrollEnd: 0.52,
-      position: [0, -118, 0],
-      animation: 'fade',
-      content: (
-        <FadeInText
-          position={[0, 0, 0]}
-          fontSize={0.5}
-          color="#cccccc"
-          delay={0.2}
-        >
-          Everything creators need to share their content safely — worldwide.
-        </FadeInText>
-      )
-    },
-    {
-      id: 'connect',
       scrollStart: 0.50,
       scrollEnd: 0.56,
-      position: [0, -128, 0],
+      position: [0, -115, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={0.7}
-          color="#ffffff"
-          delay={0.2}
+          fontSize={isMobile ? 0.4 : 0.5}
+          color="#cccccc"
+          maxWidth={isMobile ? 16 : 20}
+          textAlign="center"
+          scrollStart={0.50}
+          scrollEnd={0.56}
         >
-          Watch. Support. Connect. Anywhere.
-        </FadeInText>
+          {isMobile ? 
+            'Everything creators need\nto share their content\nsafely — worldwide.' :
+            'Everything creators need to share\ntheir content safely — worldwide.'
+          }
+        </TextComponent>
       )
     },
     {
       id: 'history',
-      scrollStart: 0.54,
-      scrollEnd: 0.60,
-      position: [0, -140, 0],
+      scrollStart: 0.58,
+      scrollEnd: 0.64,
+      position: [0, -130, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={1}
+          fontSize={isMobile ? 0.8 : 1}
           color="#ff0040"
-          delay={0.2}
+          fontWeight={900}
+          scrollStart={0.58}
+          scrollEnd={0.64}
         >
-          Our history
-        </FadeInText>
+          Our origin
+        </TextComponent>
       )
     },
     {
       id: 'pandemic',
-      scrollStart: 0.58,
-      scrollEnd: 0.64,
-      position: [0, -148, 0],
+      scrollStart: 0.62,
+      scrollEnd: 0.68,
+      position: [0, -140, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={0.5}
+          fontSize={isMobile ? 0.4 : 0.5}
           color="#cccccc"
-          maxWidth={20}
+          maxWidth={isMobile ? 16 : 20}
           textAlign="center"
-          delay={0.2}
+          scrollStart={0.62}
+          scrollEnd={0.68}
         >
-          During the pandemic,{'\n'}artists lost their stages.
-        </FadeInText>
+          {isMobile ? 
+            'During the pandemic,\nartists lost\ntheir stages.' :
+            'During the pandemic,\nartists lost their stages.'
+          }
+        </TextComponent>
       )
     },
     {
       id: 'soundclub',
-      scrollStart: 0.62,
-      scrollEnd: 0.68,
-      position: [0, -158, 0],
+      scrollStart: 0.66,
+      scrollEnd: 0.72,
+      position: [0, -150, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={0.5}
+          fontSize={isMobile ? 0.4 : 0.5}
           color="#cccccc"
-          maxWidth={20}
+          maxWidth={isMobile ? 16 : 20}
           textAlign="center"
-          delay={0.2}
+          scrollStart={0.66}
+          scrollEnd={0.72}
         >
-          SoundClub was our answer —{'\n'}a live streaming tool with{'\n'}built-in payments{'\n'}that kept music alive when the{'\n'}world stopped.
-        </FadeInText>
+          {isMobile ? 
+            'SoundClub was our answer —\na live streaming tool\nwith built-in payments\nthat kept music alive\nwhen the world stopped.' :
+            'SoundClub was our answer —\na live streaming tool with\nbuilt-in payments\nthat kept music alive when\nthe world stopped.'
+          }
+        </TextComponent>
       )
     },
     {
       id: 'stats',
-      scrollStart: 0.66,
-      scrollEnd: 0.72,
-      position: [0, -168, 0],
+      scrollStart: 0.70,
+      scrollEnd: 0.76,
+      position: [0, -160, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={0.5}
+          fontSize={isMobile ? 0.4 : 0.5}
           color="#ffffff"
-          maxWidth={20}
+          maxWidth={isMobile ? 16 : 20}
           textAlign="center"
-          delay={0.2}
+          fontWeight={400}
+          scrollStart={0.70}
+          scrollEnd={0.76}
         >
-          Thousands of live shows.{'\n'}Hundreds of creators.{'\n'}Millions of memories — all online.
-        </FadeInText>
+          {isMobile ? 
+            'Thousands of live shows.\nHundreds of creators.\nMillions of memories —\nall online.' :
+            'Thousands of live shows.\nHundreds of creators.\nMillions of memories — all online.'
+          }
+        </TextComponent>
       )
     },
     {
       id: 'origin',
-      scrollStart: 0.70,
-      scrollEnd: 0.76,
-      position: [0, -178, 0],
+      scrollStart: 0.74,
+      scrollEnd: 0.80,
+      position: [0, -170, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={0.5}
+          fontSize={isMobile ? 0.4 : 0.5}
           color="#cccccc"
-          maxWidth={20}
+          maxWidth={isMobile ? 16 : 20}
           textAlign="center"
-          delay={0.2}
+          scrollStart={0.74}
+          scrollEnd={0.80}
         >
-          Born in Rio de Janeiro,{'\n'}built for the world.
-        </FadeInText>
+          {isMobile ? 
+            'What began as survival\nbecame innovation.\n\nA secure, scalable platform\nfor creators worldwide.' :
+            'What began as survival\nbecame innovation.\n\nA secure, scalable platform\nfor creators worldwide.'
+          }
+        </TextComponent>
       )
     },
     {
       id: 'innovation',
-      scrollStart: 0.74,
-      scrollEnd: 0.80,
-      position: [0, -188, 0],
-      animation: 'fade',
-      content: (
-        <FadeInText
-          position={[0, 0, 0]}
-          fontSize={0.5}
-          color="#cccccc"
-          maxWidth={20}
-          textAlign="center"
-          delay={0.2}
-        >
-          What began as survival{'\n'}became innovation.{'\n\n'}A secure, scalable platform for creators worldwide.
-        </FadeInText>
-      )
-    },
-    {
-      id: 'nouns-culture',
       scrollStart: 0.78,
       scrollEnd: 0.84,
-      position: [0, -198, 0],
+      position: [0, -180, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={0.5}
+          fontSize={isMobile ? 0.4 : 0.5}
           color="#cccccc"
-          maxWidth={20}
+          maxWidth={isMobile ? 16 : 20}
           textAlign="center"
-          delay={0.2}
+          scrollStart={0.78}
+          scrollEnd={0.84}
         >
-          Nouns culture mirrors ours —{'\n'}helping creators expand their art.
-        </FadeInText>
+          Born in Rio de Janeiro,\nbuilt for the world.
+        </TextComponent>
       )
     },
     {
       id: 'together',
-      scrollStart: 0.82,
+      scrollStart: 0.84,
       scrollEnd: 0.88,
-      position: [0, -208, 0],
+      position: [0, -198, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={0.5}
+          fontSize={isMobile ? 0.4 : 0.5}
           color="#cccccc"
-          maxWidth={20}
+          maxWidth={isMobile ? 16 : 20}
           textAlign="center"
-          delay={0.2}
+          scrollStart={0.84}
+          scrollEnd={0.88}
         >
-          Together,{'\n'}we can bring secure streaming{'\n'}and on-demand experiences{'\n'}to every creator.
-        </FadeInText>
+          {isMobile ? 
+            'Together,\nwe can bring\nsecure streaming\nand on-demand experiences\nto every creator.' :
+            'Together,\nwe can bring secure streaming\nand on-demand experiences\nto every creator.'
+          }
+        </TextComponent>
       )
     },
     {
       id: 'gratitude',
       scrollStart: 0.86,
-      scrollEnd: 0.92,
-      position: [0, -218, 0],
+      scrollEnd: 0.90,
+      position: [0, -206, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={0.5}
+          fontSize={isMobile ? 0.4 : 0.5}
           color="#ffffff"
-          delay={0.2}
+          fontWeight={400}
+          maxWidth={isMobile ? 16 : 20}
+          textAlign="center"
+          scrollStart={0.86}
+          scrollEnd={0.90}
         >
-          Our team is grateful for your support.
-        </FadeInText>
+          {isMobile ? 
+            'Our team is grateful\nfor your support.' :
+            'Our team is grateful for your support.'
+          }
+        </TextComponent>
       )
     },
     {
       id: 'vote',
-      scrollStart: 0.90,
-      scrollEnd: 0.96,
-      position: [0, -230, 0],
+      scrollStart: 0.88,
+      scrollEnd: 0.94,
+      position: [0, -214, 0],
       animation: 'fade',
       content: (
         <group>
-          <FadeInText
+          <TextComponent
             position={[0, 2, 0]}
-            fontSize={1.2}
+            fontSize={isMobile ? 0.85 : 1.2}
             color="#ff0040"
-            delay={0.2}
+            fontWeight={900}
+            maxWidth={isMobile ? 16 : 20}
+            textAlign="center"
+            scrollStart={0.88}
+            scrollEnd={0.94}
           >
-            Vote for Nouns TV
-          </FadeInText>
+            {isMobile ? 'Vote for\nNouns TV' : 'Vote for Nouns TV'}
+          </TextComponent>
           <AnimatedLine
-            start={[-4, 0.5, 0]}
-            end={[4, 0.5, 0]}
+            start={isMobile ? [-3, 0.5, 0] : [-4, 0.5, 0]}
+            end={isMobile ? [3, 0.5, 0] : [4, 0.5, 0]}
             color="#ff0040"
             delay={0.5}
-            width={3}
+            width={isMobile ? 2 : 3}
           />
         </group>
       )
     },
     {
       id: 'future',
-      scrollStart: 0.94,
+      scrollStart: 0.92,
       scrollEnd: 1.0,
-      position: [0, -238, 0],
+      position: [0, -222, 0],
       animation: 'fade',
       content: (
-        <FadeInText
+        <TextComponent
           position={[0, 0, 0]}
-          fontSize={0.5}
+          fontSize={isMobile ? 0.4 : 0.5}
           color="#cccccc"
-          maxWidth={20}
+          maxWidth={isMobile ? 16 : 20}
           textAlign="center"
-          delay={0.2}
+          scrollStart={0.92}
+          scrollEnd={1.0}
         >
-          Join us in shaping{'\n'}the future of creative streaming
-        </FadeInText>
+          {isMobile ? 
+            'Join us in shaping\nthe future of\ncreative streaming' :
+            'Join us in shaping\nthe future of creative streaming'
+          }
+        </TextComponent>
       )
     }
-  ], [])
+  ], [isMobile])
 
   return (
-    <SmoothScrollPresentation
-      pages={16}
-      damping={0.15}
-      eps={0.001}
-      scrollIndicator={true}
-      scrollIndicatorStyle={{
-        background: 'rgba(0,0,0,0.7)',
-        border: '1px solid #ff0040'
-      }}
-    >
-      {/* Noggles overlay - covers screen when scrolling through noggles section */}
+    <>
+      {/* Mobile loading indicator */}
+      {isMobile && showLoading && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: '#000',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          opacity: showLoading ? 1 : 0,
+          transition: 'opacity 0.5s ease-out'
+        }}>
+          <div style={{
+            textAlign: 'center',
+            color: '#fff',
+            fontFamily: 'Londrina Solid, Arial, sans-serif'
+          }}>
+            <div style={{ fontSize: '24px', marginBottom: '20px' }}>👓</div>
+            <div style={{ fontSize: '18px', fontWeight: 300 }}>Loading Nouns TV...</div>
+          </div>
+        </div>
+      )}
+      
+      <SmoothScrollPresentation
+        pages={16}
+        damping={0.15}
+        eps={0.001}
+        scrollIndicator={true}
+        scrollIndicatorStyle={{
+          background: 'rgba(0,0,0,0.7)',
+          border: '1px solid #ff0040'
+        }}
+        isMobile={isMobile}
+      >
+      {/* Noggles overlay */}
       <SimpleNoggleOverlay 
         scrollStart={0.04}
         scrollEnd={0.10}
+        isMobile={isMobile}
+      />
+      
+      {/* YouTube video embed */}
+      <VideoEmbed
+        scrollStart={0.20}
+        scrollEnd={0.32}
+        videoId="qnQOGS3wd0c"
+        isMobile={isMobile}
       />
       
       {/* Security Layer scrambling words effect */}
       <ScramblingWords
-        scrollStart={0.38}
-        scrollEnd={0.44}
+        scrollStart={0.50}
+        scrollEnd={0.56}
         wordCount={12}
       />
       
@@ -784,7 +871,7 @@ function ScrollPresentation() {
       <FloatingParticles
         count={80}
         spread={40}
-        color="#ff004010"
+        color="#ff0040"
         size={0.02}
         speed={0.2}
       />
@@ -793,8 +880,8 @@ function ScrollPresentation() {
       {sections.map((section) => (
         <Section
           key={section.id}
-              scrollStart={section.scrollStart}
-              scrollEnd={section.scrollEnd}
+          scrollStart={section.scrollStart}
+          scrollEnd={section.scrollEnd}
           position={section.position}
           animation={section.animation}
           animationConfig={section.animationConfig}
@@ -803,17 +890,21 @@ function ScrollPresentation() {
         </Section>
       ))}
       
-      {/* Keep the scroll hint */}
+      {/* Scroll hint */}
       <group position={[0, -240, 0]}>
-        <FadeInText
+        <TextComponent
           position={[0, 0, 2]}
-          fontSize={0.3}
+          fontSize={isMobile ? 0.3 : 0.3}
           color="#666666"
+          fontWeight={300}
+          scrollStart={0.95}
+          scrollEnd={1.0}
         >
-          🖱️ Scroll to explore
-        </FadeInText>
+          {isMobile ? '👆 Swipe to explore' : '🖱️ Scroll to explore'}
+        </TextComponent>
       </group>
-    </SmoothScrollPresentation>
+      </SmoothScrollPresentation>
+    </>
   )
 }
 

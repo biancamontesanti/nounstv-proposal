@@ -3,6 +3,15 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Text, useScroll } from '@react-three/drei'
 import { gsap } from 'gsap'
 import * as THREE from 'three'
+import { BloomLayer } from './SelectiveBloom'
+
+// Font URLs for Londrina Solid weights
+const FONT_URLS = {
+  100: '/fonts/londrina-solid-latin-100-normal.woff',
+  300: '/fonts/londrina-solid-latin-300-normal.woff',
+  400: '/fonts/londrina-solid-latin-400-normal.woff',
+  900: '/fonts/londrina-solid-latin-900-normal.woff'
+}
 
 // Scramble Title Component with delayed entrance and mouse interaction
 function ScrambleTitle({ 
@@ -10,7 +19,9 @@ function ScrambleTitle({
   position, 
   scrollStart, 
   scrollEnd, 
-  delay = 2 
+  delay = 2,
+  fontWeight = 900,
+  bloom = true // Enable bloom by default for titles
 }) {
   const groupRef = useRef()
   const [chars, setChars] = useState([])
@@ -130,7 +141,7 @@ function ScrambleTitle({
     }, 100)
   }
   
-  return (
+  const titleGroup = (
     <group ref={groupRef} position={position}>
       {chars.map((char, index) => (
         <Text
@@ -140,6 +151,7 @@ function ScrambleTitle({
           color="#ff0040"
           anchorX="center"
           anchorY="middle"
+          font={FONT_URLS[fontWeight] || FONT_URLS[900]}
           material-transparent
           material-toneMapped={false}
         >
@@ -148,6 +160,12 @@ function ScrambleTitle({
       ))}
     </group>
   )
+
+  return bloom ? (
+    <BloomLayer enabled={bloom}>
+      {titleGroup}
+    </BloomLayer>
+  ) : titleGroup
 }
 
 export default ScrambleTitle
